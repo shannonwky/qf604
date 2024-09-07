@@ -1,0 +1,182 @@
+---
+title: "Modelfitting_Final"
+output: html_document
+date: "2024-03-12"
+---
+
+```{r setup, include=FALSE}
+library(readxl)
+library(mfGARCH)
+library(readr)
+library(DBI)
+library(dplyr)
+library(tidyr)
+library(lubridate)
+library(tidyverse)
+```
+
+
+```{r}
+### Reading in data
+### Train
+train <- read_excel('allData090324.xlsx', sheet='train') 
+
+
+### Changing date dtype
+train$date <- as.Date(train$date, format='Y%m%d') 
+train$year_month <- as.Date(train$year_month, format='Y%m%d') 
+
+
+
+### Changing indicies dtype
+numeric_indices <- c(3,4,5,6,7,8,9,10,11,12)
+train[, numeric_indices] <- lapply(train[, numeric_indices], as.numeric)
+
+
+### fixing random bug 
+train$ssec_RV[1] <- train$ssec_RV[2]
+
+
+### Scaling Indexes by 100 as per mf_garch suggestion
+train$CU <- train$CU *100
+train$CEU <- train$CEU *100
+train$UCPU <- train$UCPU *100
+train$CEPU <- train$CEPU *100
+```
+
+```{r}
+# Create an empty list to store the results
+#results <- list()
+
+# Loop over values of K from 2 to 15
+#for (K in 2:4) {
+  
+  #cat("Processing K =", K, "\n")
+  
+  # Fit models using train data
+  
+  #cat('========================= CSI 300 with CU =========================')
+  #model_csi_rv_cu <- fit_mfgarch(data = train, y = "csi_lnret100", x = "CU", low.freq = "year_month", K = K, weighting = "beta.restricted", gamma = TRUE, x.two = "csi_RV", K.two = K, low.freq.two = 'year_month')
+  
+  #model_info <- c(K, model_csi_rv_cu$par)
+    
+  #results[[paste0("model_csi_rv_cu_", K)]] <- model_info
+  
+  #cat('===================================================================\n\n')
+#}
+#results_df <- do.call(rbind, lapply(results, function(x) data.frame(t(x))))
+
+  
+```
+
+```{r}
+# Create an empty list to store the results
+results <- list()
+
+# Loop over values of K from 2 to 15
+for (K in 2:15) {
+  
+  cat("Processing K =", K, "\n")
+  
+  # Fit models using train data
+  
+  cat('========================= CSI 300 with CU =========================')
+  model_csi_rv_cu <- fit_mfgarch(data = train, y = "csi_lnret100", x = "CU", low.freq = "year_month", K = K, weighting = "beta.restricted", gamma = TRUE, x.two = "csi_RV", K.two = K, low.freq.two = 'year_month')
+  model_info <- c(K, model_csi_rv_cu$par)
+    
+  results[[paste0("model_csi_rv_cu_", K)]] <- model_info
+  
+  cat('===================================================================\n\n')
+
+  cat('========================= CSI 300 with CEU =========================')
+  model_csi_rv_ceu <- fit_mfgarch(data = train, y = "csi_lnret100", x = "CEU", low.freq = "year_month", K = K, weighting = "beta.restricted", gamma = TRUE, x.two = "csi_RV", K.two = K, low.freq.two = 'year_month')
+  
+  model_info1 <- c(K, model_csi_rv_ceu$par)
+    
+  results[[paste0("model_csi_rv_ceu_", K)]] <- model_info1
+  ('====================================================================')
+
+print('========================= CSI 300 with CEPU =========================')
+model_csi_rv_cepu <- fit_mfgarch(data = train, y="csi_lnret100", x="CEPU", low.freq ="year_month", 
+                                 K=K, weighting="beta.restricted", gamma=TRUE, x.two="csi_RV", K.two=K, low.freq.two = 'year_month')
+#model_csi_rv_cepu
+model_info2 <- c(K, model_csi_rv_cepu$par)
+    
+  results[[paste0("model_csi_rv_cepu_", K)]] <- model_info2
+  print('=====================================================================')
+
+
+print('========================= CSI 300 with UCPU =========================')
+model_csi_rv_ucpu <- fit_mfgarch(data = train, y="csi_lnret100", x="UCPU", low.freq ="year_month", 
+                                 K=K, weighting="beta.restricted", gamma=TRUE, x.two="csi_RV", K.two=K, low.freq.two = 'year_month')
+#model_csi_rv_ucpu
+model_info3 <- c(K, model_csi_rv_ucpu$par)
+    
+results[[paste0("model_csi_rv_ucpu_", K)]] <- model_info3
+print('====================================================================')
+
+
+print('========================= SSEC with CU =========================')
+model_ssec_rv_cu <- fit_mfgarch(data = train, y="ssec_lnret100", x="CU", low.freq ="year_month", K=2, weighting="beta.restricted", gamma=TRUE, x.two="ssec_RV", K.two=2, low.freq.two = 'year_month')
+#model_ssec_rv_cu
+model_info4 <- c(K, model_ssec_rv_cu$par)
+    
+results[[paste0("model_ssec_rv_cu_", K)]] <- model_info4
+print('================================================================')
+
+
+print('========================= SSEC with CEU =========================')
+model_ssec_rv_ceu <- fit_mfgarch(data = train, y="ssec_lnret100", x="CEU", low.freq ="year_month", 
+                                 K=K, weighting="beta.restricted", gamma=TRUE, x.two="ssec_RV", K.two=K, low.freq.two = 'year_month')
+#model_ssec_rv_ceu
+model_info5 <- c(K, model_ssec_rv_ceu$par)
+    
+results[[paste0("model_ssec_rv_ceu_", K)]] <- model_info5
+print('=================================================================')
+
+
+print('========================= SSEC with CEPU =========================')
+model_ssec_rv_cepu <- fit_mfgarch(data = train, y="ssec_lnret100", x="CEPU", low.freq ="year_month", 
+                                  K=K, weighting="beta.restricted", gamma=TRUE, x.two="ssec_RV", K.two=K, low.freq.two = 'year_month')
+#model_ssec_rv_cepu
+model_info6 <- c(K, model_ssec_rv_cepu$par)
+    
+results[[paste0("model_ssec_rv_cepu_", K)]] <- model_info6
+print('==================================================================')
+
+
+print('========================= SSEC with UCPU =========================')
+model_ssec_rv_ucpu <- fit_mfgarch(data = train, y="ssec_lnret100", x="UCPU", low.freq ="year_month", 
+                                  K=K, weighting="beta.restricted", gamma=TRUE, x.two="ssec_RV", K.two=K, low.freq.two = 'year_month')
+#model_ssec_rv_ucpu
+model_info7 <- c(K, model_ssec_rv_ucpu$par)
+    
+results[[paste0("model_ssec_rv_ucpu_", K)]] <- model_info7
+print('=================================================================')
+
+
+# print('========================= CSI with RV =========================')
+# model_csi_rv <- fit_mfgarch(data=train, y="csi_lnret100", x="csi_RV", low.freq = "year_month", weighting = "beta.restricted", gamma=TRUE, K=K)
+# #model_csi_rv
+# model_info8 <- c(K, model_csi_rv$par)
+#     
+# results[[paste0("model_ssec_rv_", K)]] <- model_info8
+# print('=================================================================')
+# 
+# print('========================= SSEC with RV =========================')
+# model_ssec_rv <- fit_mfgarch(data=train, y="ssec_lnret100", x="ssec_RV", low.freq = "year_month", weighting = "beta.restricted", gamma=TRUE, K=K)
+# #model_ssec_rv
+# 
+# model_info9 <- c(K, model_ssec_rv_cu$par)
+#     
+# results[[paste0("model_ssec_rv_cu_", K)]] <- model_info9
+# print('=================================================================')
+
+  
+}
+
+# Convert the list of results into a table
+results_df <- do.call(rbind, lapply(results, function(x) as.data.frame(t(x))))
+results_df
+```
+
