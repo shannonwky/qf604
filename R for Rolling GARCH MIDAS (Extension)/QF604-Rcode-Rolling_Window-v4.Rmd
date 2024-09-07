@@ -1,0 +1,102 @@
+---
+title: "Untitled"
+author: "hannah"
+date: "2024-03-05"
+output: html_document
+---
+
+ADF test--this part is for ADF test, no need to run it.
+```{r}
+# library(readxl)
+# library(mfGARCH)
+# library(tseries)
+# library(forecast)
+# library(TSA)
+# library(lubridate)
+# 
+# 
+# CSI = read_excel("CSI 300 ESG Index.xlsx")
+# SSEC = read_excel("SSEC Index.xlsx")
+# CU = read_excel("projData_v2.xlsx", sheet = "CU")
+# CEU = read_excel("projData_v2.xlsx", sheet = "CEU")
+# CEPU = read_excel("projData_v2.xlsx", sheet = "CEPU")
+# UCPU = read_excel("projData_v2.xlsx", sheet = "UCPU")
+# 
+# data.frame(c(adf.test(CSI$close), adf.test(SSEC$close), adf.test(CU$CU), adf.test(CEU$monthly_index), adf.test(CEPU$`China News-Based EPU`), adf.test(UCPU$cpu_index)))
+# 
+# Ret_CSI = diff(log(CSI$close))*100
+# Ret_SSEC = diff(log(SSEC$close))*100
+# Ret_CEU = diff(log(CEU$monthly_index))
+# Ret_CEPU = diff(log(CEPU$`China News-Based EPU`))
+# Ret_UCPU = diff(log(UCPU$cpu_index))
+# 
+# adf1 = adf.test(Ret_CSI, k = 0)
+# adf2 = adf.test(Ret_SSEC, k = 0)
+# adf3 = adf.test(Ret_CU ,k=0)
+# adf4 = adf.test(Ret_CEU ,k=0)
+# adf5 = adf.test(Ret_CEPU ,k=0)
+# adf6 = adf.test(Ret_UCPU ,k=0)
+# 
+# df = data.frame(c(adf1$statistic, adf2$statistic, adf3$statistic, adf4$statistic, adf5$statistic, adf6$statistic))
+# row.names(df) = c("CSI", "SSEC", "CU", "CEU", "CEPU", "UCPU")
+# colnames(df) = c("ADF stat.")
+# df
+```
+
+
+Rolling Window Method for GARCH-MIDAS
+```{r}
+library(readxl)
+library(mfGARCH)
+
+all <- read_excel('allData1223am.xlsx', sheet='all')
+test <- read_excel('allData1223am.xlsx', sheet='test')
+### Changing date dtype
+all$date <- as.Date(all$date, format='Y%m%d') 
+all$year_month <- as.Date(all$year_month, format='Y%m%d') 
+### Changing numeric dtype
+numeric_indices <- c(3,4,5,6,7,8,9,10,11,12)
+all[, numeric_indices] <- lapply(all[, numeric_indices], as.numeric)
+
+all = na.omit(all)
+
+my.func = function(y, x, K, x.two, K.two, low.freq.two){
+g = c()
+tau = c()
+sigma = c()
+for (i in 1:nrow(test)) {
+  df_new = all[i:(i+499),]
+  model <- fit_mfgarch(data = df_new, y=y, x=x, low.freq ="year_month", K=K, weighting="beta.restricted", gamma=TRUE, x.two=x.two, K.two=K.two, low.freq.two = low.freq.two)
+#model_csi_rv_cu_forecast <-
+  g_0 = model$g[500]
+  mu = as.numeric(model$par["mu"])
+  alpha = as.numeric(model$par["alpha"])
+  beta = as.numeric(model$par["beta"])
+  tau_1_day = model$tau.forecast
+  rit = all[[y]][(500+i)]
+  g_1_day = (1-alpha-beta)+(alpha*(rit-mu)**2)/tau_1_day+beta*g_0
+  sigma_1_day = sqrt(g_1_day*tau_1_day)
+  g = c(g,g_1_day)
+  tau = c(tau,tau_1_day)
+  sigma = c(sigma, sigma_1_day)
+  print(i)
+}#end_for
+return(data.frame(test$date, tau, g, sigma))
+}#end_func
+
+#For Example
+model_csi_rv_cu = my.func("csi_lnret100", "csi_RV", 9, "CU", 9, "year_month")
+model_csi_rv_ceu = my.func("csi_lnret100", "csi_RV", 9, "CEU", 9, "year_month")
+model_csi_rv_cepu = my.func("csi_lnret100", "csi_RV", 9, "CEPU", 9, "year_month")
+model_csi_rv_ucpu = my.func("csi_lnret100", "csi_RV", 9, "UCPU", 9, "year_month")
+model_ssec_rv_cu = my.func("ssec_lnret100", "ssec_RV", 9, "CU", 9, "year_month")
+model_ssec_rv_ceu = my.func("ssec_lnret100", "ssec_RV", 9, "CEU", 9, "year_month")
+model_ssec_rv_cepu = my.func("ssec_lnret100", "ssec_RV", 9, "CEPU", 9, "year_month")
+model_ssec_rv_ucpu = my.func("ssec_lnret100", "ssec_RV", 9, "UCPU", 9, "year_month")
+model_csi_rv = my.func("csi_lnret100", "csi_RV", 9, NULL, NULL, NULL)
+model_ssec_rv = my.func("ssec_lnret100", "ssec_RV", 9, NULL, NULL, NULL)
+
+
+
+
+```
